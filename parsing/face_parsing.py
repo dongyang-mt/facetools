@@ -58,8 +58,8 @@ def parsing(imgs, cp='checkpoint/face_parsing.pth', device="cpu"):
 
     n_classes = 19
     net = BiSeNet(n_classes=n_classes)
-    net.to(device)
     net.load_state_dict(torch.load(cp, map_location=device))
+    net.to(device)
     net.eval()
 
     to_tensor = transforms.Compose([
