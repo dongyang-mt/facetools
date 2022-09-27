@@ -54,12 +54,12 @@ def vis_parsing_maps(im, parsing_anno, stride=1, show=False, save_im=False, save
     # return vis_im
 
 
-def parsing(imgs, cp='checkpoint/face_parsing.pth'):
+def parsing(imgs, cp='checkpoint/face_parsing.pth', device="cpu"):
 
     n_classes = 19
     net = BiSeNet(n_classes=n_classes)
-    net.cuda()
-    net.load_state_dict(torch.load(cp))
+    net.to(device)
+    net.load_state_dict(torch.load(cp, map_location=device))
     net.eval()
 
     to_tensor = transforms.Compose([
@@ -73,7 +73,7 @@ def parsing(imgs, cp='checkpoint/face_parsing.pth'):
             image = imgs.resize((512, 512), Image.BILINEAR)
             img = to_tensor(image)
             img = torch.unsqueeze(img, 0)
-            img = img.cuda()
+            img = img.to(device)
             out = net(img)[0]
             parsing_maps = out.squeeze(0).cpu().numpy().argmax(0).astype('float32')
             parsing_maps = cv2.resize(parsing_maps, shape, interpolation=cv2.INTER_NEAREST)
@@ -86,7 +86,7 @@ def parsing(imgs, cp='checkpoint/face_parsing.pth'):
                 image = img.resize((512, 512), Image.BILINEAR)
                 img = to_tensor(image)
                 img = torch.unsqueeze(img, 0)
-                img = img.cuda()
+                img = img.to(device)
                 out = net(img)[0]
                 parsing_maps = out.squeeze(0).cpu().numpy().argmax(0).astype('float32')
                 parsing_maps = cv2.resize(parsing_maps, shape, interpolation=cv2.INTER_NEAREST)
