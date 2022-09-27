@@ -89,16 +89,17 @@ def parsing(imgs, cp='checkpoint/face_parsing.pth', device="cpu"):
             img = torch.unsqueeze(img, 0)
             img = img.to(device)
             # warm up
-            for i in range(10):
-                out = net(img)[0]
+            for i in range(100):
+                net(img)[0]
 
             timecost = []
-            for i in range(100):
+            for i in range(200):
                 t1 = time.time()
-                out = net(img)[0]
+                net(img)[0]
                 t2 = time.time()
                 timecost.append([(t2 - t1) * 1000.0])
             save_benchmark(timecost, ["face_parsing"], device)
+            out = net(img)[0]
             parsing_maps = out.squeeze(0).cpu().numpy().argmax(0).astype('float32')
             parsing_maps = cv2.resize(parsing_maps, shape, interpolation=cv2.INTER_NEAREST)
             return parsing_maps
