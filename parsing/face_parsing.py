@@ -53,12 +53,26 @@ def vis_parsing_maps(im, parsing_anno, stride=1, show=False, save_im=False, save
 
     # return vis_im
 
+import time
+def save_benchmark(timecost, modulename, torch_device="cpu", folder="benchmark"):
+    cost_np = np.array(timecost)
+    print("==>> cost_np.shape: ", cost_np.shape)
+    print("==>> type(cost_np): ", type(cost_np))
+    import csv
+    os.makedirs(folder, exist_ok=True)
+    csvFile = open(os.path.join(folder, torch_device + "_analyze.csv"), 'w', newline='')
+    writer = csv.writer(csvFile)
+    writer.writerow([torch_device, "mean", "std", "min", "max", "count"])
+    for i, name in enumerate(modulename):
+        writer.writerow([name, cost_np[:,i].mean(), cost_np[:,i].std(), cost_np[:,i].min(), cost_np[:,i].max(), cost_np[:,i].shape[0]])
+    np.savetxt(os.path.join(folder, torch_device + "_timecost.csv"), cost_np, delimiter=",")
+
 
 def parsing(imgs, cp='checkpoint/face_parsing.pth', device="cpu"):
 
     n_classes = 19
     net = BiSeNet(n_classes=n_classes)
-    net.load_state_dict(torch.load(cp, map_location=device))
+    net.load_state_dict(torch.load(cp, map_location="cpu"))
     net.to(device)
     net.eval()
 
@@ -74,7 +88,17 @@ def parsing(imgs, cp='checkpoint/face_parsing.pth', device="cpu"):
             img = to_tensor(image)
             img = torch.unsqueeze(img, 0)
             img = img.to(device)
-            out = net(img)[0]
+            # warm up
+            for i in range(10):
+                out = net(img)[0]
+
+            timecost = []
+            for i in range(100):
+                t1 = time.time()
+                out = net(img)[0]
+                t2 = time.time()
+                timecost.append([(t2 - t1) * 1000.0])
+            save_benchmark(timecost, ["face_parsing"], device)
             parsing_maps = out.squeeze(0).cpu().numpy().argmax(0).astype('float32')
             parsing_maps = cv2.resize(parsing_maps, shape, interpolation=cv2.INTER_NEAREST)
             return parsing_maps
